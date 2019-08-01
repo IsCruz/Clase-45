@@ -3,6 +3,7 @@ const app = express();
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 const todoRoutes = express.Router();
 const PORT = 4000;
 
@@ -26,23 +27,99 @@ todoRoutes.get('/', (req, res) => {
     });
 });
 
-todoRoutes.post('/delete', (req, res) => {
-    let description = req.body.todo_description
-    Todo.deleteOne({ todo_description: description }, (err) => {
-        if (err) return next(err);
-        res.send('Deleted successfully!');
+const returnLast = async () => {
+  const data = await Todo.find().sort('_id','descending').limit(1);
+  console.log(data);
+  return data.then((err, res) => {
+    if(err){
+      console.log(err);
+    } else {
+      res.json(todos);
+    }
+  })/*.find((err, doc) => {
+    const lastData = JSON.stringify(doc);
+    console.log(lastData);
+    return lastData)*/
+  }
+
+
+function verifyToken(req, res, next) {
+    //get Headers Value
+    const bearerHeader = req.headers['authorization'];
+    if(typeof bearerHeader !== 'undefined'){
+        //Split bearer header,   
+        // we received the token like this: Authorization: Bearer <Token>
+        const bearer = bearerHeader.split(' ')
+        // get token
+        const token = bearer[1];
+        // set the token
+        req.token = token;
+        next();
+    }else{
+        // error "Forbidden message";
+        res.status(403).json({
+            success: false,
+            message: 'Forbidden'
+        });
+    }
+}
+todoRoutes.post('/delete', verifyToken, (req, res) => {
+    jwt.verify(req.token, 'palabras', (err, authData) => {
+        if (err) {
+            //error with JWT
+            res.status(403).json({
+                success: false,
+                message: err
+            })
+        } else {
+            //erase data from data base
+            let id = req.body._id
+            Todo.deleteOne({ _id: id }, (err, response) => {
+                if (err || response.deletedCount == 0) {
+                    // return error from database
+                    res.json({
+                        success: false,
+                        message: err,
+                        count: response.deletedCount
+                    })
+                } else {
+                    res.status(200).json({
+                        success: true,
+                        message: 'Deleted successfully!',
+                        res: response
+                    })
+                }
+            })
+        }
     })
 })
 
-todoRoutes.post('/add', (req, res) => {
-    let todo = new Todo(req.body);
-    todo.save()
-        .then(todo => {
-            res.status(200).json({ 'todo': 'todo added successfully' });
-        })
-        .catch(err => {
-            res.status(400).send('adding new todo failed');
-        });
+app.post('/add', verifyToken, (req, res) => {
+    console.log(req.token);
+    jwt.verify(req.token, 'palabra', (err, authData) => {
+        if(err) {
+            // error from JWT
+            res.status(403).json({
+                success: false,
+                message: err
+            })
+        }else {
+            // add data to Data Base
+            let todo = new Todo(req.body);
+            todo.save()
+                .then(todo => {
+                    res.status(200).json({
+                        success: true,
+                        message: 'Post created!',
+                        authData
+                    }) 
+                })
+                .catch(err => {
+                    // error from Data Base
+                    res.status(400).send('adding new todo failed');
+                });
+        }
+    })
 });
 
 todoRoutes.post('/update/:id', function (req, res) {
@@ -59,8 +136,37 @@ todoRoutes.post('/update/:id', function (req, res) {
             });
     });
 });
+
+app.get('/users-created', (req, res) => {
+    res.json({
+        message: "it's Working"
+    })
+})
+
+app.post('/login', (req, res) =>{
+    const user = {
+        id: 1,
+        username: 'userdemo',
+        email: 'demo@mail.com'
+    };
+    jwt.sign({user}, 'palabra', {expiresIn: '20s'}, function(err, token) {
+        if(!err) {
+        res.json({
+            success: true,
+            username: user.username,
+            token: token,
+        })
+     }else {
+         res.json({
+             success: false,
+             error: err
+         })
+     }
+    })
+})
+
 app.use('/todos', todoRoutes);
 
 app.listen(PORT, function () {
     console.log("Server is running on Port: " + PORT);
-});
+})
