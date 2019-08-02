@@ -6,8 +6,10 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const todoRoutes = express.Router();
 const PORT = 4000;
+const bcrypt = require('bcrypt');
+const userRoutes = require('./routes/Users-routes');
 
-let Todo = require('./models/todo.model');
+let Todo = require('./app/api/models/todo.model');
 app.use(cors());
 
 app.use(bodyParser.json());
@@ -61,6 +63,7 @@ function verifyToken(req, res, next) {
             success: false,
             message: 'Forbidden'
         });
+        next();
     }
 }
 todoRoutes.post('/delete', verifyToken, (req, res) => {
@@ -137,35 +140,13 @@ todoRoutes.post('/update/:id', function (req, res) {
     });
 });
 
-app.get('/users-created', (req, res) => {
-    res.json({
-        message: "it's Working"
-    })
-})
 
-app.post('/login', (req, res) =>{
-    const user = {
-        id: 1,
-        username: 'userdemo',
-        email: 'demo@mail.com'
-    };
-    jwt.sign({user}, 'palabra', {expiresIn: '20s'}, function(err, token) {
-        if(!err) {
-        res.json({
-            success: true,
-            username: user.username,
-            token: token,
-        })
-     }else {
-         res.json({
-             success: false,
-             error: err
-         })
-     }
-    })
-})
+
+
 
 app.use('/todos', todoRoutes);
+// localhost:4000/users/
+app.use('/users', userRoutes);
 
 app.listen(PORT, function () {
     console.log("Server is running on Port: " + PORT);
