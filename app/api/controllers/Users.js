@@ -11,12 +11,12 @@ const create = (req, res, next) => {
 
     }, function (err, result) {
         if (err) {
-            res.json({
+            res.status(401).json({
                 success: false,
                 message: "Cannot create this user Yet, try another one"
             })
         } else {
-            res.json({
+            res.status(200).json({
                 success: true,
                 message: result
             })
@@ -27,12 +27,12 @@ const create = (req, res, next) => {
 const anotherCreate = (req, res, next) => {
     const newUser = new userModel(req.body);
     newUser.save().then((data) => {
-        res.json({
+        res.status(200).json({
             success: true,
             message: data
         })
     }).catch((err) => {
-        res.json({
+        res.status(500).json({
             success: false,
             message: 'Cannot Register this user now, try another one'
         })
@@ -49,25 +49,25 @@ const login = (req, res, next) => {
                 success: false,
                 error: err
             };
-            next(error);
+            res.status(404).json(error);
         } else {
             if (userData != null && bcrypt.compareSync(req.body.password, userData.password)) {
                 const token = jwt.sign({ user }, 'palabra', function (err, token) {
                     if (!err) {
-                        res.json({
+                        res.status(200).json({
                             success: true,
                             username: userData,
                             token: token,
                         })
                     } else {
-                        res.json({
+                        res.status(500).json({
                             success: false,
                             error: err
                         })
                     }
                 })
             } else {
-                res.json({
+                res.status(401).json({
                     success: false,
                     message: 'Incorrect Password'
                 })

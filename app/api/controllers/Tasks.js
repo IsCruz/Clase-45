@@ -1,16 +1,16 @@
 const Todo = require('../models/todo.model');
 const jwt = require('jsonwebtoken');
 
-const getAllTasks = (req, res, next) => {
+const getAllTasks = (req, res) => {
     Todo.find(function (err, data) {
         if (err) {
             const error = {
                 succes: false,
                 message: err
             };
-            next(error);
+            res.status(401).json(error);
         } else {
-            res.json({
+            res.status(200).json({
                 sucess: true,
                 message: data
             });
@@ -18,7 +18,7 @@ const getAllTasks = (req, res, next) => {
     });
 };
 
-const deleteTasks = (req, res, next) => {
+const deleteTasks = (req, res) => {
     jwt.verify(req.token, 'palabras', (err, authData) => {
         if (err) {
             //error with JWT
@@ -26,14 +26,14 @@ const deleteTasks = (req, res, next) => {
                 success: false,
                 message: err
             }
-            next(error)
+            res.status(401).json(error)
         } else {
             //erase data from data base
             let id = req.body._id
             Todo.deleteOne({ _id: id }, (err, response) => {
                 if (err || response.deletedCount == 0) {
                     // return error from database
-                    res.json({
+                    res.status(404).json({
                         success: false,
                         message: err,
                         count: response.deletedCount
@@ -50,7 +50,7 @@ const deleteTasks = (req, res, next) => {
     })
 }
 
-const addTasks = (req, res, next) => {
+const addTasks = (req, res) => {
     jwt.verify(req.token, 'palabra', (err, authData) => {
         if (err) {
             // error from JWT
@@ -58,7 +58,7 @@ const addTasks = (req, res, next) => {
                 success: false,
                 message: err
             }
-            next(error)
+            res.status(401).json(error)
         } else {
             // add data to Data Base
             let todo = new Todo(req.body);
@@ -72,7 +72,8 @@ const addTasks = (req, res, next) => {
                 })
                 .catch(err => {
                     // error from Data Base
-                    res.status(400).send('adding new todo failed');
+                    res.status(400).json({ success: false,
+                        message: 'adding new todo failed'});
                 });
         }
     })
@@ -85,18 +86,18 @@ const updateTasks = (req, res, next) => {
                 sucess: false,
                 message: "data is not found"
             }
-            next(error)
+            res.status(401).json(error)
         }
         else
             todo.todo_description = req.body.todo_description;
         todo.save().then(todo => {
-            res.json({
+            res.status(200).json({
                 success: true,
                 message: 'Todo updated!'
             });
         })
             .catch(err => {
-                res.json({
+                res.status(500).json({
                     sucess: false,
                     message: "Update not possible"
                 });
