@@ -6,7 +6,9 @@ const create = (req, res, next) => {
     userModel.create({
         name: req.body.name,
         email: req.body.email,
-        password: req.body.password
+        password: req.body.password,
+        username: req.body.username
+
     }, function (err, result) {
         if (err) {
             res.json({
@@ -54,7 +56,7 @@ const login = (req, res, next) => {
                     if (!err) {
                         res.json({
                             success: true,
-                            username: user.username,
+                            username: userData,
                             token: token,
                         })
                     } else {
